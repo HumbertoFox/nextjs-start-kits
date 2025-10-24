@@ -337,7 +337,7 @@ Este sistema de autenticação utiliza:
 
 - Cookies Somente HTTP para armazenamento seguro de sessões
 
-- Middleware Next.js para proteção de rotas
+- Proxy Next.js para proteção de rotas
 
 - Prisma ORM para buscar dados de usuários autenticados
 
@@ -351,7 +351,7 @@ O sistema é dividido em três módulos principais:
 
 2. getUser.ts – Recupera o usuário autenticado atual do banco de dados
 
-3. middleware.ts – Protege rotas com base no estado da sessão
+3. proxy.ts – Protege rotas com base no estado da sessão
 
 ---
 
@@ -600,18 +600,18 @@ export const getUser = cache(async () => {
 
 ---
 
-# 🛡️ 3. middleware.ts – Proteção de Rota com JWT e Acesso Baseado em Função
+# 🛡️ 3. proxy.ts – Proteção de Rota com JWT e Acesso Baseado em Função
 
-Este middleware protege rotas com base na presença da sessão e na função do usuário.
+Este proxy protege rotas com base na presença da sessão e na função do usuário.
 
-## 📄 Código do Middleware (Versão Mais Recente)
+## 📄 Código do Proxy (Versão Mais Recente)
 
 ```ts
 
 import { NextRequest, NextResponse } from 'next/server';
 import { updateSession } from './lib/session';
 
-export default async function middleware(req: NextRequest) {
+export default async function proxy(req: NextRequest) {
   const path = req.nextUrl.pathname;
 
   const isProtectedRoute = path.startsWith('/dashboard');
@@ -654,8 +654,8 @@ export const config = {
 
 ---
 
-# ⚙️ Middleware Matcher
-Esta configuração garante que o middleware seja executado apenas em rotas relevantes, ignorando ativos estáticos e endpoints de API:
+# ⚙️ Proxy Matcher
+Esta configuração garante que o proxy seja executado apenas em rotas relevantes, ignorando ativos estáticos e endpoints de API:
 
 ```ts
 
