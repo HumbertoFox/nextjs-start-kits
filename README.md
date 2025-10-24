@@ -736,7 +736,7 @@ export default async function DashboardPage() {
 
 - Os tokens têm vida curta (15 minutos) e são renovados automaticamente
 
-- A renovação da sessão é tratada de forma transparente no middleware
+- A renovação da sessão é tratada de forma transparente no proxy
 
 - Todas as rotas protegidas são verificadas a cada solicitação no lado do servidor
 
@@ -748,7 +748,7 @@ Esta configuração oferece:
 
 - Autenticação segura baseada em sessão com JWT
 
-- Proteção de rota usando middleware
+- Proteção de rota usando proxy
 
 - Gerenciamento de usuários baseado em Prisma
 
