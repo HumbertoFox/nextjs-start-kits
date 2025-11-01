@@ -25,13 +25,15 @@ Ele foi desenvolvido com Next.js App Router, Prisma, bcrypt-ts, React Hooks, sha
     └── form-register-admin.tsx # Formulário de registro de administrador do lado do cliente
 
 /app/api/actions
-  └── createadmin.ts           # Lógica do lado do servidor para criação de administrador
+  ├── createadmin.ts            # Lógica do lado do servidor para criação de administrador
+  ├── deleteadminuser.ts        # Exclusão lógica de administrador
+  └── reactivateadminuser.ts    # Reativação de administrador deletado
 
 /lib
-  └── prisma.ts                # Cliente Prisma
-  └── session.ts               # Gerenciamento de sessão
-  └── definitions.ts           # Definições do esquema Zod
-
+  ├── prisma.ts                 # Cliente Prisma para comunicação com o banco de dados
+  ├── session.ts                # Gerenciamento de sessão e autenticação
+  ├── definitions.ts            # Definições de tipos e validações Zod
+  └── dal.ts                    # Funções auxiliares de acesso a dados (ex: getUser)
 ```
 
 ---
@@ -137,7 +139,9 @@ Se não houver um administrador, o formulário será exibido. Caso contrário, v
 
 ## ✅ Pilha de Tecnologia
 
-- Next.js (Roteador de Aplicativos)
+- Next.js 15+ (Roteador de Aplicativos)
+
+- TypeScript
 
 - Prisma ORM
 
@@ -146,6 +150,8 @@ Se não houver um administrador, o formulário será exibido. Caso contrário, v
 - bcrypt-ts (hash de senhas)
 
 - React Hooks
+
+- Server Actions
 
 - next-intl (internacionalização)
 
@@ -755,6 +761,305 @@ Esta configuração oferece:
 - Renovação automática de sessão
 
 ---
+
+## 🚦 Lógica de Exibição e Manipulação de Administradores `(page.tsx)`
+
+O arquivo principal /app/dashboard/admins/page.tsx é responsável por:
+
+1️⃣ Buscar os administradores
+
+- Usa o Prisma ORM para consultar todos os usuários com role: 'ADMIN'.
+
+- Exemplo de query:
+
+```ts
+
+const admins = await prisma.user.findMany({
+  where: { role: 'ADMIN' },
+  select: { id: true, name: true, email: true, deletedAt: true },
+});
+
+```
+
+- O campo deletedAt define se o admin está ativo (null) ou excluído (data de exclusão).
+
+## 2️⃣ Exibir a lista em uma tabela
+
+A tabela é construída com os componentes reutilizáveis do design system (@/components/ui/table).
+
+Cada linha mostra:
+
+- Número (posição na lista)
+
+- ID do admin
+
+- Nome
+
+- E-mail
+
+- Ações disponíveis
+
+## 3️⃣ Ações de cada administrador
+🟡 Atualizar administrador
+
+- Se o admin listado for o mesmo usuário logado, o link leva a /dashboard/settings/profile.
+
+- Caso contrário, o link é /dashboard/admins/[id]/update.
+
+- Ícone: ✏️ (UserRoundPen).
+
+🔴 Excluir administrador
+
+- A exclusão é feita via formulário que chama a Server Action deleteUserById.
+
+- Antes de excluir, é exibido um dialogo de confirmação (<Dialog />).
+
+- Exclusão lógica: apenas define deletedAt com a data atual.
+
+🟢 Reativar administrador
+
+- Se o campo deletedAt estiver preenchido, aparece o botão de reativação.
+
+- O botão envia o ID do usuário para a Server Action reactivateAdminUserById.
+
+- Reativa o administrador definindo deletedAt = null.
+
+## 4️⃣ Proteção e contexto do usuário
+
+- A função `getUser()` (de `/lib/dal.ts`) obtém o <strong>usuário logado</strong>.
+
+- O ID do usuário logado (`loggedAdmin`) é comparado com o ID de cada admin listado, garantindo que:
+
+  - O `admin` <strong>não possa excluir a si mesmo</strong>.
+
+  - Ao clicar em editar, é redirecionado para <strong>seu próprio perfil</strong>.
+
+## 💾 Server Actions Utilizadas
+`deleteUserById`
+
+- Recebe o userId via formulário.
+
+- Atualiza o campo deletedAt no banco de dados.
+
+- Impede exclusão permanente.
+
+`reactivateAdminUserById`
+
+- Recebe o userId via formulário.
+
+- Define deletedAt = null, reativando o usuário.
+
+## 🎨 Componentes de Interface
+
+Os principais componentes usados na UI vêm de `@/components/ui/`:
+
+- `Button`, `Dialog`, `Icon`, `Table`
+
+- `PlaceholderPattern`: elemento visual para preencher o layout quando não há dados.
+
+- `AdminsBreadcrumb`: exibe a navegação superior da página.
+
+## 🧠 Resumo do Fluxo
+
+```mermaid
+
+flowchart TD
+  A[Usuário acessa /dashboard/admins] --> B[Busca lista de admins com Prisma]
+  B --> C{deletedAt é null?}
+  C -->|Sim| D[Mostrar opções: Editar / Excluir]
+  C -->|Não| E[Mostrar botão de Reativar]
+  D --> F[Excluir via deleteUserById]
+  E --> G[Reativar via reactivateAdminUserById]
+  F --> H[Atualiza lista]
+  G --> H
+
+```
+
+## 👥 Gerenciamento de Usuários
+
+Esta página do projeto é responsável por listar, editar, excluir (lógico) e reativar usuários dentro do painel administrativo.
+Ela também implementa paginação dinâmica, exibindo os usuários em blocos de 10 por página.
+
+## 📁 Estrutura do Arquivo
+
+```bash
+
+/app/dashboard/admins/users/
+  └── page.tsx                     # Página principal de listagem e controle de usuários
+
+/app/api/actions/
+  ├── deleteadminuser.ts           # Server Action de exclusão lógica de usuário
+  ├── reactivateadminuser.ts       # Server Action para reativar usuários deletados
+
+/components/
+  ├── breadcrumbs/users-breadcrumb.tsx  # Componente de navegação para a página de usuários
+  ├── ui/
+  │   ├── table.tsx                # Tabela reutilizável (UI)
+  │   ├── dialog.tsx               # Componente de diálogo de confirmação
+  │   ├── pagination.tsx           # Componente de paginação
+  │   ├── button.tsx               # Botão customizado
+  │   ├── icon.tsx                 # Ícone padronizado
+  │   └── placeholder-pattern.tsx  # Padrão visual placeholder
+/lib/
+  ├── prisma.ts                    # Cliente Prisma
+  ├── getvisiblepagination.ts      # Função auxiliar para controlar quais páginas ficam visíveis
+
+```
+
+## 🚦 Lógica da Página /dashboard/users/page.tsx
+
+### 1️⃣ Definição de metadados
+
+```ts
+
+export const generateMetadata = async (): Promise<Metadata> => ({
+  title: 'Usuários',
+});
+
+```
+
+Define o título da página exibido no navegador e em SEO.
+
+### 2️⃣ Paginação e busca de dados
+
+A constante `pageSize` define o número de usuários por página (neste caso, 10).
+
+```ts
+
+const pageSize = 10;
+
+```
+
+O componente recebe o parâmetro `page` via `searchParams` da URL, calcula a página atual e faz duas consultas paralelas com `Promise.all()`:
+
+- Busca dos usuários da página atual
+
+- Contagem total de usuários
+
+```ts
+
+const [users, totalUsers] = await Promise.all([
+  prisma.user.findMany({
+    where: { role: 'USER' },
+    select: { id: true, name: true, email: true, deletedAt: true },
+    skip: (currentPage - 1) * pageSize,
+    take: pageSize,
+  }),
+  prisma.user.count({ where: { role: 'USER' } }),
+]);
+
+```
+
+### 3️⃣ Exibição dos usuários em uma tabela
+
+A tabela é renderizada usando componentes reutilizáveis (`Table`, `TableRow`, `TableCell`, etc.) com <strong>TailwindCSS</strong>.
+Cada linha exibe:
+
+- Número sequencial (de acordo com a página)
+
+- ID do usuário
+
+- Nome
+
+- E-mail
+
+- Ações possíveis
+
+### 4️⃣ Ações disponíveis por usuário
+🟡 Editar Usuário
+
+- Linka para a rota /dashboard/admins/[id]/update (você pode personalizar para /dashboard/users/[id]/update).
+
+- Ícone: ✏️ (UserPen).
+
+🔴 Excluir Usuário
+
+- Exibição de um diálogo de confirmação antes da exclusão.
+
+- A ação de exclusão chama o Server Action deleteUserById via formulário:
+
+```tsx
+
+<form action={deleteUserById}>
+    <input type="hidden" name="userId" value={user.id} />
+    <Button type="submit" variant="destructive">Sim, Excluir!</Button>
+</form>
+
+```
+
+- A exclusão é lógica, ou seja, apenas preenche o campo `deletedAt` no banco de dados (não remove o registro).
+
+🟢 Reativar Usuário
+
+- Se o usuário tiver `deletedAt` definido, exibe um botão de reativação.
+
+- A ação chama `reactivateAdminUserById` (que redefine `deletedAt = null`).
+
+5️⃣ Paginação dinâmica
+
+Abaixo da tabela, é exibida a paginação com botões <strong>Anterior / Próximo</strong> e os números de páginas visíveis, controlados por `getVisiblePagination()`.
+
+```tsx
+
+<Pagination>
+  <PaginationContent>
+    <PaginationPrevious href={`?page=${currentPage - 1}`} />
+    {getVisiblePagination(currentPage, totalPages).map((page) => (
+      <PaginationLink key={page} href={`?page=${page}`} isActive={page === currentPage}>
+        {page}
+      </PaginationLink>
+    ))}
+    <PaginationNext href={`?page=${currentPage + 1}`} />
+  </PaginationContent>
+</Pagination>
+
+```
+
+⚙️ O helper `getVisiblePagination()` calcula dinamicamente quais números de página exibir, evitando mostrar todas as páginas quando o total é muito grande.
+
+6️⃣ Placeholder visual
+
+Na parte superior da página há uma grade de placeholders puramente visuais, criados com o componente:
+
+```tsx
+
+<PlaceholderPattern className="absolute inset-0 size-full stroke-neutral-900/20 dark:stroke-neutral-100/20" />
+
+```
+
+Eles preenchem o layout enquanto o conteúdo principal (tabela) é carregado.
+
+## 💾 Server Actions Utilizadas
+🧨 deleteUserById
+
+- Marca o usuário como deletado (deletedAt = new Date()).
+
+- É chamada via formulário da UI.
+
+- Evita exclusão física no banco, mantendo rastreabilidade.
+
+🔄 reactivateAdminUserById
+
+- Reativa o usuário, setando deletedAt = null.
+
+- Pode ser chamada pelo botão de reativar em usuários desativados.
+
+## 🧠 Fluxo Resumido
+
+```mermaid
+
+flowchart TD
+  A[Usuário acessa /dashboard/users?page=n] --> B[Busca lista de usuários via Prisma]
+  B --> C{deletedAt é null?}
+  C -->|Sim| D[Mostrar ações: Editar / Excluir]
+  C -->|Não| E[Mostrar ação: Reativar]
+  D --> F[Excluir via deleteUserById]
+  E --> G[Reativar via reactivateAdminUserById]
+  F --> H[Atualiza lista]
+  G --> H
+  H --> I[Renderiza nova tabela e paginação]
+
+```
 
 #### Exemplos de troca:
 
