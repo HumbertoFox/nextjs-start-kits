@@ -11,6 +11,8 @@ import { Icon } from '@/components/ui/icon';
 import { createAdmin } from '@/app/api/actions/createadmin';
 import TextLink from '@/components/text-link';
 import { useRouter } from 'next/navigation';
+import { handleImageChange } from '@/lib/handleimagechange';
+import Image from 'next/image';
 
 type RegisterForm = {
     name: string;
@@ -23,6 +25,9 @@ export default function RegisterAdmin({ TitleIntl }: { TitleIntl: string }) {
     const emailRef = useRef<HTMLInputElement>(null);
     const router = useRouter();
     const [state, action, pending] = useActionState(createAdmin, undefined);
+    const [imagePreview, setImagePreview] = useState<string | null>(null);
+    const [imageFile, setImageFile] = useState<File | null>(null);
+    const [imageError, setImageError] = useState<string | null>(null);
     const [showPassword, setShowPassword] = useState<boolean>(false);
     const [showPasswordConfirm, setShowPasswordConfirm] = useState<boolean>(false);
     const [data, setData] = useState<RegisterForm>({
@@ -36,6 +41,12 @@ export default function RegisterAdmin({ TitleIntl }: { TitleIntl: string }) {
         const { id, value } = e.target;
         setData({ ...data, [id]: value });
     };
+    const onImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const { file, preview, error } = await handleImageChange(e);
+        setImageFile(file);
+        setImagePreview(preview);
+        setImageError(error);
+    };
     const toggleShowPassword = () => setShowPassword(prev => !prev);
     const toggleShowPasswordConfirm = () => setShowPasswordConfirm(prev => !prev);
     const submit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -43,7 +54,6 @@ export default function RegisterAdmin({ TitleIntl }: { TitleIntl: string }) {
         const formData = new FormData(e.currentTarget);
         startTransition(() => action(formData));
     };
-
     useEffect(() => {
         if (state?.message) {
             setData({
@@ -63,6 +73,46 @@ export default function RegisterAdmin({ TitleIntl }: { TitleIntl: string }) {
                 className="flex flex-col gap-6"
             >
                 <div className="grid gap-6">
+                    <div className="grid gap-2">
+                        <Label htmlFor="file">Foto de perfil</Label>
+                        <div className="flex flex-col items-center gap-3">
+                            <div className="relative w-24 h-24 rounded-full overflow-hidden border border-gray-300">
+                                {imagePreview ? (
+                                    <Image
+                                        src={imagePreview}
+                                        alt="Preview"
+                                        width={512}
+                                        height={512}
+                                        className="object-cover w-full h-full"
+                                    />
+                                ) : (
+                                    <div className="w-full h-full flex items-center justify-center text-sm text-gray-400 bg-gray-50">
+                                        Sem imagem
+                                    </div>
+                                )}
+                            </div>
+
+                            <Label
+                                htmlFor="file"
+                                className="cursor-pointer px-3 py-1 text-sm border rounded-md hover:bg-gray-50"
+                            >
+                                Selecionar imagem
+                            </Label>
+                            <Input
+                                id="file"
+                                name="file"
+                                type="file"
+                                tabIndex={1}
+                                accept="image/jpeg, image/png, image/webp"
+                                onChange={onImageChange}
+                                disabled={pending}
+                                className="hidden"
+                            />
+                            {imageError && <InputError message={imageError} />}
+                            {state?.errors?.image?.[0] && <InputError message={state.errors.image[0]} />}
+                        </div>
+                    </div>
+
                     <div className="grid gap-2">
                         <Label htmlFor="name">Nome</Label>
                         <Input
