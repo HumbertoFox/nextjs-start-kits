@@ -47,7 +47,7 @@ export default function RegisterUserForm({ user, isEdit, valueButton }: Register
         password: '',
         role: user?.role ?? 'USER',
         password_confirmation: '',
-        image: user?.image,
+        image: user?.image ?? undefined,
     });
 
     const handleChange = (e: ChangeEvent<HTMLInputElement>) => {

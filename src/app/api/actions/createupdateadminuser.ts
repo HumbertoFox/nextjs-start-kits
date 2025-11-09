@@ -6,6 +6,7 @@ import prisma from '@/lib/prisma';
 import * as bcrypt from 'bcrypt-ts';
 import z from 'zod';
 import sharp from 'sharp';
+import { revalidatePath } from 'next/cache';
 
 const MAX_FILE_SIZE = 512 * 1024;
 const MAX_DIMENSION = 512;
@@ -24,6 +25,12 @@ export async function createUpdateAdminUser(state: FormStateCreateUpdateAdminUse
 
     const id = formData.get('id') as string | undefined;
     const file = formData.get('file') as File | null;
+
+    function revalidatePaths(role: string) {
+        role === 'ADMIN'
+            ? revalidatePath('/dashboard/admins')
+            : revalidatePath('/dashboard/admins/users');
+    };
 
     if (!validatedFields.success) return { errors: z.flattenError(validatedFields.error).fieldErrors };
 
@@ -87,7 +94,7 @@ export async function createUpdateAdminUser(state: FormStateCreateUpdateAdminUse
 
             if (!hasChanges) return { message: false };
 
-            await prisma.user.update({
+            const updateUser = await prisma.user.update({
                 where: {
                     id
                 },
@@ -100,6 +107,8 @@ export async function createUpdateAdminUser(state: FormStateCreateUpdateAdminUse
                 }
             });
 
+            revalidatePaths(updateUser.role);
+
             return { message: true };
         } else {
             const existingUser = await prisma.user.findFirst({
@@ -110,7 +119,7 @@ export async function createUpdateAdminUser(state: FormStateCreateUpdateAdminUse
 
             if (existingUser) return { errors: { email: ['Este e-mail já está em uso!'] } };
 
-            await prisma.user.create({
+            const newUser = await prisma.user.create({
                 data: {
                     name,
                     email,
@@ -119,6 +128,8 @@ export async function createUpdateAdminUser(state: FormStateCreateUpdateAdminUse
                     ...(imageUrl && { image: imageUrl }),
                 }
             });
+
+            revalidatePath(newUser.role);
 
             return { message: true };
         }

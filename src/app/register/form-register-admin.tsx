@@ -19,6 +19,7 @@ type RegisterForm = {
     email: string;
     password: string;
     password_confirmation: string;
+    image?: File;
 };
 
 export default function RegisterAdmin({ TitleIntl }: { TitleIntl: string }) {
@@ -35,6 +36,7 @@ export default function RegisterAdmin({ TitleIntl }: { TitleIntl: string }) {
         email: '',
         password: '',
         password_confirmation: '',
+        image: undefined,
     });
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -52,6 +54,7 @@ export default function RegisterAdmin({ TitleIntl }: { TitleIntl: string }) {
     const submit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         const formData = new FormData(e.currentTarget);
+        if (imageFile) formData.append('file', imageFile);
         startTransition(() => action(formData));
     };
     useEffect(() => {
@@ -61,13 +64,17 @@ export default function RegisterAdmin({ TitleIntl }: { TitleIntl: string }) {
                 email: '',
                 password: '',
                 password_confirmation: '',
+                image: undefined,
             });
 
             router.push('/dashboard');
         };
     }, [state, router]);
     return (
-        <AuthLayout title={TitleIntl} description="Insira seus dados abaixo para criar sua conta">
+        <AuthLayout
+            title={TitleIntl}
+            description="Insira seus dados abaixo para criar sua conta"
+        >
             <form
                 onSubmit={submit}
                 className="flex flex-col gap-6"
@@ -121,7 +128,7 @@ export default function RegisterAdmin({ TitleIntl }: { TitleIntl: string }) {
                             type="text"
                             required
                             autoFocus
-                            tabIndex={1}
+                            tabIndex={2}
                             autoComplete="name"
                             value={data.name}
                             onChange={handleChange}
@@ -139,7 +146,7 @@ export default function RegisterAdmin({ TitleIntl }: { TitleIntl: string }) {
                             type="email"
                             ref={emailRef}
                             required
-                            tabIndex={2}
+                            tabIndex={3}
                             autoComplete="email"
                             value={data.email}
                             onChange={handleChange}
@@ -157,7 +164,7 @@ export default function RegisterAdmin({ TitleIntl }: { TitleIntl: string }) {
                                 name="password"
                                 type={showPassword ? "text" : "password"}
                                 required
-                                tabIndex={3}
+                                tabIndex={4}
                                 autoComplete="new-password"
                                 value={data.password}
                                 onChange={handleChange}
@@ -184,7 +191,7 @@ export default function RegisterAdmin({ TitleIntl }: { TitleIntl: string }) {
                                 name="password_confirmation"
                                 type={showPasswordConfirm ? "text" : "password"}
                                 required
-                                tabIndex={4}
+                                tabIndex={5}
                                 autoComplete="new-password"
                                 value={data.password_confirmation}
                                 onChange={handleChange}
