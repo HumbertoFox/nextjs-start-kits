@@ -53,6 +53,7 @@ export default function RegisterAdmin({ TitleIntl }: { TitleIntl: string }) {
     const toggleShowPasswordConfirm = () => setShowPasswordConfirm(prev => !prev);
     const submit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
+        if (imageError) return;
         const formData = new FormData(e.currentTarget);
         if (imageFile) formData.append('file', imageFile);
         startTransition(() => action(formData));
@@ -101,6 +102,7 @@ export default function RegisterAdmin({ TitleIntl }: { TitleIntl: string }) {
 
                             <Label
                                 htmlFor="file"
+                                title={imageError ? "Click em Selecionar imagem e em Cancelar" : "Selecionar imagem de perfil"}
                                 className="cursor-pointer px-3 py-1 text-sm border rounded-md hover:bg-gray-50"
                             >
                                 Selecionar imagem
@@ -213,8 +215,8 @@ export default function RegisterAdmin({ TitleIntl }: { TitleIntl: string }) {
                     <Button
                         type="submit"
                         tabIndex={6}
-                        disabled={pending}
-                        aria-busy={pending}
+                        disabled={pending || Boolean(imageError)}
+                        aria-busy={pending || Boolean(imageError)}
                         className="mt-2 w-full"
                     >
                         {pending && <LoaderCircle className="h-4 w-4 animate-spin" />}
