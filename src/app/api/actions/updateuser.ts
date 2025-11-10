@@ -8,6 +8,9 @@ import z from 'zod';
 import { put, del } from '@vercel/blob';
 import crypto from 'crypto';
 
+const MAX_FILE_SIZE = 512 * 1024;
+const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+
 export async function updateUser(state: FormStateUserUpdate, formData: FormData): Promise<FormStateUserUpdate> {
     const validatedFields = updateUserSchema.safeParse({
         name: formData.get('name') as string,
@@ -36,6 +39,10 @@ export async function updateUser(state: FormStateUserUpdate, formData: FormData)
     if (sessionUser.email !== email) dataToUpdate.email = email;
 
     if (file && file.size > 0) {
+        if (!ALLOWED_TYPES.includes(file.type)) return { errors: { image: ['Apenas JPEG, PNG ou WebP são permitidas.'] } };
+
+        if (file.size > MAX_FILE_SIZE) return { errors: { image: ['A imagem não pode ultrapassar 512 KB.'] } };
+
         try {
             if (sessionUser.image) {
                 try {
