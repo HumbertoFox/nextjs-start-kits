@@ -182,7 +182,7 @@ export default function ProfilePageClient({ name, email, image, mustVerifyEmail 
                     </div>
 
                     <div className="flex items-center gap-4">
-                        <Button disabled={pending}>Salvar</Button>
+                        <Button disabled={pending || Boolean(imageError)}>Salvar</Button>
 
                         <Transition
                             show={recentlySuccessful}
