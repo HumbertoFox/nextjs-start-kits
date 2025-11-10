@@ -83,8 +83,8 @@ export default function ProfilePageClient({ name, email, image, mustVerifyEmail 
                     description="Atualize seu nome e endereço de e-mail"
                 />
 
-                <form onSubmit={submit} className="grid">
-                    <div className="flex justify-between gap-6">
+                <form onSubmit={submit} className="space-y-6">
+                    <div className="flex flex-col-reverse justify-between lg:flex-row gap-6">
                         <div className="flex flex-col flex-1 gap-6">
                             <div className="grid gap-2">
                                 <Label htmlFor="name">Nome</Label>
@@ -179,8 +179,8 @@ export default function ProfilePageClient({ name, email, image, mustVerifyEmail 
                                 {state?.errors?.image?.[0] && <InputError message={state.errors.image[0]} />}
                             </div>
                         </div>
-
                     </div>
+
                     <div className="flex items-center gap-4">
                         <Button disabled={pending}>Salvar</Button>
 
