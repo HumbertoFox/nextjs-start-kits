@@ -29,7 +29,7 @@ export default function ProfilePageClient({ name, email, image, mustVerifyEmail 
     const router = useRouter();
     const { setBreadcrumbs } = useBreadcrumbs();
     const [state, action, pending] = useActionState(updateUser, undefined);
-    const [imagePreview, setImagePreview] = useState<string | null>(image ?? null);
+    const [imagePreview, setImagePreview] = useState<string | null | undefined>(image ?? null);
     const [imageFile, setImageFile] = useState<File | null>(null);
     const [imageError, setImageError] = useState<string | null>(null);
     const [status, setStatus] = useState<string | null>(null);
@@ -42,15 +42,8 @@ export default function ProfilePageClient({ name, email, image, mustVerifyEmail 
     };
     const onImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const { file, preview, error } = await handleImageChange(e);
-        if (error) {
-            setImageError(error);
-            setImageFile(null);
-            setImagePreview(image ?? null);
-            e.target.value = '';
-            return;
-        }
         setImageFile(file);
-        setImagePreview(preview);
+        setImagePreview(preview ?? image);
         setImageError(error);
     };
     useEffect(() => {
@@ -94,7 +87,6 @@ export default function ProfilePageClient({ name, email, image, mustVerifyEmail 
                     title="Informações do perfil"
                     description="Atualize sua imagem, seu nome e endereço de e-mail"
                 />
-
                 <form onSubmit={submit} className="space-y-6">
                     <div className="flex flex-col-reverse justify-between lg:flex-row gap-6">
                         <div className="min-w-2/3 flex flex-col flex-1 gap-6">
