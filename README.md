@@ -76,8 +76,8 @@ O sistema foi construído usando <strong>Next.js 16+ (App Router), Prisma, Zod, 
 
 ```sh
 
-git clone https://github.com/SEU_USUARIO/SEU_REPO.git
-cd SEU_REPO
+git clone https://github.com/HumbertoFox/nextjs-start-kits.git
+cd nextjs-start-kits
 
 ```
 
