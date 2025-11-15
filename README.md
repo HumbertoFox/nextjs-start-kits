@@ -13,466 +13,324 @@
 
 ---
 
-# 🚀 TUTORIAL COMPLETO — SISTEMA DE LOGIN / AUTENTICAÇÃO
+## 📘 Tutorial – Cadastro de Administradores (Next.js, Prisma, Upload com Vercel Blob)
 
-### Next.js 16+ (App Router) + Server Actions + Prisma + JWT + Cookies HttpOnly
+Este projeto implementa um fluxo completo de <strong>cadastro de Administradores e Usuários</strong>, com verificação automática do primeiro administrador, upload de imagem com validação, autenticação e criação de sessão.
+O sistema foi construído usando <strong>Next.js 16+ (App Router), Prisma, Zod, Vercel Blob, bcrypt-ts e React Server Actions</strong>.
 
----
+### 🚀 Funcionalidades principais
 
-## 📌 1. COMO O SISTEMA FUNCIONA (Visão Geral)
+<p>✔ Cadastro de Administrador/Usuário</p>
+<p>✔ Upload de imagem com preview</p>
+<p>✔ Validação de imagem (tipo, tamanho e dimensões)</p>
+<p>✔ Processamento de imagem com Sharp</p>
+<p>✔ Upload armazenado no Vercel Blob</p>
+<p>✔ Hash de senha com bcrypt-ts</p>
+<p>✔ Autenticação via Server Action + criação de sessão</p>
+<p>✔ Escolha automática:</p>
 
-Seu sistema possui um fluxo profissional de autenticação:
+- Se nenhum admin existe → cria ADMIN
+- Se já existe → cria USER
+<p>✔ Feedback de erros em tempo real</p>
+<p>✔ Campos controlados e status loading</p>
 
-1. Usuário acessa /login<br>
-   - → Preenche formulário<br>
-   - → loginUser() (Server Action) valida e cria sessão<br>
-   - → Redireciona para /dashboard
+### 🧱 Tecnologias Utilizadas
 
-2. Sessão é salva via Cookie HttpOnly + JWT seguro
- 
-   -  Assinado com AUTH_SECRET
+| Tecnologia                  |	Uso
+|-----------------------------|------------------------------------|
+| Next.js 16+ + App Router    |	UI + Server Actions                |
+| React + useActionState	    | Estados do formulário              |
+| Prisma ORM                  |	Banco de dados                     |
+| PostgreSQL / MySQL / SQLite |	Banco (compatível com qualquer um) |
+| Zod	                        | Validação do formulário            |
+| bcrypt-ts                   |	Hash de senhas                     |
+| Sharp                       |	Validação e leitura de imagens     |
+| Vercel Blob                 |	Armazenamento de avatares          |
+| TypeScript                  |	Tipagem                            |
 
-   - Expira e é renovado automaticamente
-
-3. Middleware inteligente (proxy.ts) controla acesso
-
-   - Bloqueia páginas privadas para quem não está logado
-
-   - Bloqueia páginas de admin para usuários comuns
-
-   - Redireciona usuários logados que tentam acessar /login
-
-   - Protege tudo, tanto no client quanto no server
-
-4. Dashboard tem rotas protegidas
-
-   - /dashboard
-
-   - /dashboard/admins
-
-   - /dashboard/users
-
-   - etc.
-
-5. Página de /register (registro inicial do admin)
-
-   - Só aparece se não existe nenhum admin
-
-   - Caso exista, redireciona para o dashboard
-
-   - Serve para criar o primeiro administrador do sistema
-
----
-
-### ⚙️ 2. CONFIGURAÇÃO DO PROJETO
-
-Clone o projeto:
+### 📂 Estrutura resumida dos arquivos
 
 ```bash
 
-git clone https://github.com/HumbertoFox/nextjs-start-kits
-cd nextjs-start-kits
+/app
+  /api/actions/createadmin.ts     ← Server Action (processamento)
+  /register
+      page.tsx                    ← Página que carrega o form
+      form-register-admin.tsx     ← Formulário (client component)
+
+ /lib
+    prisma.ts                     ← Configuração Prisma
+    session.ts                    ← Criação de sessão
+    definitions.ts                ← Zod + Tipos
+
+ /components
+    ui/*                          ← Inputs, Label, Button...
+    input-error.tsx               ← Componente de erro
+    layouts/auth-layout.tsx       ← Layout da página
 
 ```
 
-Instale dependências:
+### 📦 Como rodar o projeto
 
-```bash
+1. Clone o repositório
+
+```sh
+
+git clone https://github.com/SEU_USUARIO/SEU_REPO.git
+cd SEU_REPO
+
+```
+
+2. Instale as dependências
+
+```sh
 
 npm install
 
 ```
 
+3. Configure variáveis de ambiente
+
+Crie um arquivo .env:
+
 ```ini
 
-DATABASE_URL="sua URL do banco"
-AUTH_SECRET="uma chave grande e segura"
-NEXT_URL="http://localhost:3000"
+DATABASE_URL="sua_url_do_prisma"
+BLOB_READ_WRITE_TOKEN="token_do_vercel_blob"
 
 ```
 
-Rode migrations:
+4. Rode as migrações do Prisma
 
-```bash
+```sh
 
 npx prisma migrate dev
 
 ```
 
-```bash
+5. Inicie o servidor
+
+```sh
 
 npm run dev
 
 ```
 
-### 🗂️ 3. ESTRUTURA DO SISTEMA DE LOGIN
+Pronto! O sistema estará rodando em:
 
-A estrutura geral:
+👉 http://localhost:3000/register
 
-```bash
+### 🧑‍💻 Como funciona o cadastro
 
-/app
-  /login
-    page.tsx
-    login-client.tsx
-  /register
-    page.tsx
-    form-register-admin.tsx
-  /dashboard
-    ...
-/app/api/actions
-  loginuser.ts
-  createadmin.ts
-/lib
-  prisma.ts
-  session.ts
-  proxy.ts
-  definitions.ts
-  dal.ts
+🔹 1. Preenchimento do formulário (Client Component)
+
+O componente `form-register-admin.tsx` lida com:
+
+- Campos controlados
+
+- Preview da imagem
+
+- Validação inicial da imagem com handleImageChange
+
+- Exibição de erros
+
+- Envio dos dados via Server Action
+
+### 📷 Preview da imagem antes do envio
+
+```tsx
+
+const onImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { file, preview, error } = await handleImageChange(e);
+    setImageFile(file);
+    setImagePreview(preview);
+    setImageError(error);
+};
 
 ```
 
-Vamos explicar cada parte com detalhes.
+### 🧪 Envio do formulário
 
-### 🧱 4. DATABASE (Prisma)
+```tsx
 
-Modelo de usuário comum no seu projeto:
+const submit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
 
-```prisma
+    const formData = new FormData(e.currentTarget);
+    if (imageFile) formData.append('file', imageFile);
 
-model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  password  String
-  role      String   // ADMIN | USER
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  deletedAt DateTime?
+    startTransition(() => action(formData));
+};
+
+```
+
+### 📸 🧩 Validação de Imagens – /lib/handleimagechange.ts
+
+Este utilitário valida a imagem antes do upload, melhorando a experiência do usuário.
+
+<p>✔ Valida tipo (JPEG, PNG, WebP)</p>
+
+<p>✔ Valida tamanho (máx. 512 KB)</p>
+
+<p>✔ Valida dimensões (máx. 512x512 px)</p>
+
+<p>✔ Cria preview local</p>
+
+<p>✔ Retorna erros formatados</p>
+
+### 📁 Código completo:
+
+```ts
+
+export type HandleImageChangeResult = {
+    file: File | null;
+    preview: string | null;
+    error: string | null;
+};
+
+export async function handleImageChange(
+    e: React.ChangeEvent<HTMLInputElement>
+): Promise<HandleImageChangeResult> {
+
+    const file = e.target.files?.[0];
+    if (!file) return { file: null, preview: null, error: null };
+
+    // Tipos permitidos
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+        return {
+            file: null,
+            preview: null,
+            error: 'Apenas imagens JPEG, PNG ou WebP são permitidas.',
+        };
+    }
+
+    // Tamanho máximo (512 KB)
+    if (file.size > 512 * 1024) {
+        return {
+            file: null,
+            preview: null,
+            error: 'A imagem não pode ultrapassar 512 KB.',
+        };
+    }
+
+    // Verificar dimensões com createImageBitmap
+    try {
+        const imageBitmap = await createImageBitmap(file);
+        const { width, height } = imageBitmap;
+
+        if (width > 512 || height > 512) {
+            return {
+                file: null,
+                preview: null,
+                error: `A imagem não pode ter dimensões maiores que 512x512 pixels (atual: ${width}x${height}).`,
+            };
+        }
+    } catch {
+        return {
+            file: null,
+            preview: null,
+            error: 'Falha ao ler as dimensões da imagem.',
+        };
+    }
+
+    return {
+        file,
+        preview: URL.createObjectURL(file),
+        error: null,
+    };
 }
 
 ```
 
-### 📐 5. VALIDAÇÕES (ZOD) – /lib/definitions.ts
+### 🛠 2. Processamento do cadastro (Server Action)
 
-Exemplo real do login:
+Arquivo: /app/api/actions/createadmin.ts
+
+A server action:
+
+✔ Valida com Zod
 
 ```ts
 
-export const signInSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(4)
+const validatedFields = createAdminSchema.safeParse({...});
+
+```
+
+<p>✔ Revalida todos os campos com Zod</p>
+
+<p>✔ Checa se o e-mail já existe</p>
+
+<p>✔ Define role automaticamente (ADMIN ou USER)</p>
+
+<p>✔ Valida imagem com Sharp</p>
+
+<p>✔ Envia avatar para Vercel Blob</p>
+
+<p>✔ Cria usuário no banco</p>
+
+<p>✔ Cria sessão automaticamente</p>
+
+### 🧾 3. Validações com Zod
+
+createAdminSchema garante:
+
+- Nome obrigatório
+
+- Email válido
+
+- Senha mínima de 8 caracteres
+
+- Confirmação deve coincidir
+
+```ts
+
+.refine((data) => data.password === data.password_confirmation)
+
+```
+
+### 🎨 4. Determinação dinâmica do título da página
+
+Arquivo: `/app/register/page.tsx`
+
+```tsx
+
+const isAdmin = await prisma.user.findFirst({
+  where: { role: 'ADMIN' }
 });
 
-```
-
-Isso evita:
-
-SQL injection
-
-Campos vazios
-
-Login sem email válido
-
-etc.
-
-### 🍪 6. SESSÃO / AUTENTICAÇÃO – /lib/session.ts
-
-O sistema usa:
-
-<p>✔ JWT</p>
-<p>✔ Cookie HttpOnly</p>
-<p>✔ Expiração automática</p>
-<p>✔ Renovação transparente</p>
-<p>✔ Validação no servidor</p>
-
-Função chave: createSession():
-
-```ts
-
-export async function createSession(userId: string, role: string) {
-  const token = await new SignJWT({ userId, role })
-    .setProtectedHeader({ alg: "HS256" })
-    .setExpirationTime("15m")
-    .sign(secretKey);
-
-  cookies().set("sessionAuth", token, {
-    httpOnly: true,
-    secure: true,
-    sameSite: "lax",
-    path: "/"
-  });
-}
+const Title = isAdmin ? 'Cadastrar Usuário' : 'Cadastrar Administrador';
 
 ```
 
-A função verifySession() é usada pelo proxy e server components.
+### 🧩 Fluxo completo
 
-### 🎛️ 7. PROXY / MIDDLEWARE DE PROTEÇÃO – /lib/proxy.ts
+1. Usuário acessa `/register`
 
-É um dos pilares do sistema.
-Ele controla TODA a navegação.
+2. App verifica se existe ADMIN
 
-Regras implementadas:
+3. Formulário exibe título adequado
 
-🔹 Páginas públicas:
+4. Usuário preenche dados
 
- - /login
+5. Imagem é validada no frontend
 
- - /register (somente se não existe admin)
+6. Dados enviados via Server Action
 
- - assets estáticos
+7. Backend valida tudo novamente
 
-Usuário já logado → redireciona para `/dashboard`
+8. Upload no Vercel Blob
 
-🔹 Páginas privadas:
+9. Usuário criado
 
-Qualquer página dentro de:
+10. Sessão iniciada
 
-/dashboard/*
+11. Redirecionamento para `/dashboard`
 
-```bash
+### ✅ Exemplo de mensagem final no fluxo
 
-/dashboard/*
+- Conta criada com sucesso
 
-```
-
-Sem sessão → redirecionado para /login
-
-🔹 Páginas exclusivas de ADMIN:
-
-Ex.:
-
-```bash
-
-/dashboard/admins
-
-```
-
-Se role !== "ADMIN" → redirecionado para /dashboard
-
-### 📝 8. SERVER ACTIONS — backend da autenticação
-
-🔹 LOGIN — `/app/api/actions/loginuser.ts`
-
-```ts
-
-'use server';
-
-export async function loginUser(state, formData) {
-  const validated = signInSchema.safeParse({
-    email: formData.get("email"),
-    password: formData.get("password"),
-  });
-
-  if (!validated.success)
-    return { errors: validated.error.flatten().fieldErrors };
-
-  const { email, password } = validated.data;
-
-  const user = await prisma.user.findFirst({
-    where: { email, deletedAt: null }
-  });
-
-  if (!user)
-    return { warning: "E-mail ou senha inválidos" };
-
-  const validPass = await compare(password, user.password);
-  if (!validPass)
-    return { warning: "E-mail ou senha inválidos" };
-
-  await createSession(user.id, user.role);
-
-  return { message: "Login bem-sucedido!" };
-}
-
-```
-
-🔹 REGISTRO ADMIN — /app/api/actions/createadmin.ts
-
-Criado apenas quando não existe nenhum admin:
-
-```ts
-
-const existsAdmin = await prisma.user.findFirst({
-  where: { role: "ADMIN", deletedAt: null }
-});
-
-```
-
-Se existe → redireciona para dashboard
-
-Se não existe:
-
- - valida campos
-
- - hasheia senha
-
- - cria admin no banco
-
- - cria sessão
-
- - redireciona
-
-### 💻 9. FRONT-END — LOGIN PAGE
-
-`/app/login/page.tsx`
-
-```tsx
-
-export default function Page() {
-  return (
-    <Suspense fallback={<LoadingLoginSimple />}>
-      <LoginClient />
-    </Suspense>
-  );
-}
-
-```
-
-`/app/login/login-client.tsx`
-
-Características:
-
-<p>✔ Componente Client</p>
-<p>✔ Form controlado</p>
-<p>✔ Exibe mensagens de erro do backend</p>
-<p>✔ Chama loginUser() via useActionState</p>
-<p>✔ Alterna visibilidade da senha</p>
-<p>✔ Mostra loading</p>
-<p>✔ Redireciona automaticamente ao sucesso</p>
-
-Exemplo:
-
-```tsx
-
-const [state, action, pending] = useActionState(loginUser, initialState);
-
-<form action={action}>
-  <input name="email" />
-  <input type={show ? "text" : "password"} name="password" />
-  <button disabled={pending}>Entrar</button>
-</form>
-
-{state.warning && <p>{state.warning}</p>}
-
-```
-
-### 🧑‍💼 10. FRONT-END — REGISTRO DO ADMIN
-
-`/app/register/page.tsx`
-
-1. Faz checagem no servidor:
-
-- existe admin? → redireciona
-
-2. Exibe formulário de criação
-
-`/app/register/form-register-admin.tsx`
-
-- Campos: nome, email, senha, confirmação
-
-- Validação Zod + erros exibidos
-
-- Chama server action createAdmin()
-
-- Após criar → login automático
-
-### 🔒 11. PROTEGENDO O DASHBOARD
-
-Qualquer página dentro de `/dashboard` funciona assim:
-
-Nos Server Components:
-
-```ts
-
-const user = await getUser();
-if (!user) redirect("/login");
-
-```
-
-Automático via proxy (maior proteção)
-
-Exemplo de listagem:
-
-```bash
-
-/dashboard/admins/page.tsx
-
-```
-
-- Lista admins
-
-- Permite ativar/desativar (deletedAt)
-
-- Acessível só para admin
-
-### 🚪 12. LOGOUT (opcional, mas recomendado)
-
-Crie um server action:
-
-```ts
-
-'use server';
-
-export async function logout() {
-  cookies().delete("sessionAuth");
-  redirect("/login");
-}
-
-```
-
-Crie um botão:
-
-```tsx
-
-<form action={logout}>
-  <button>Sair</button>
-</form>
-
-
-```
-
-### 🎨 13. UI / LAYOUTS
-
-O projeto já inclui múltiplos layouts prontos:
-
-- Auth Simple
-
-- Auth Card
-
-- Auth Split
-
-- Dashboard com Sidebar
-
-- Dashboard com Header
-
-Você escolhe o layout apenas aplicando layout.tsx dentro da pasta desejada.
-
-### 🔥 14. FLUXO FINAL DA AUTENTICAÇÃO
-
-1️⃣ Usuário abre /login
-
-<p> → Render client</p>
-<p> → Preenche formulario</p>
-<p> → Server Action loginUser</p>
-<p> → Valida Zod</p>
-<p> → Busca no banco</p>
-<p> → Compara hash (bcrypt-ts)</p>
-<p> → Cria sessão</p>
-<p> → Redireciona para dashboard</p>
-
-2️⃣ Proxy protege todas as rotas
-
-`/login` é inacessível para usuários logados
-
-`/dashboard` é inacessível para visitantes
-
-`/dashboard/admins` é inacessível para não-admins
-
-3️⃣ Dashboard usa sessão server-side
-
-→ Acesso garantido mesmo se JavaScript do cliente estiver desligado
-
+- Redirecionamento automático ao painel
 
 ---
 
