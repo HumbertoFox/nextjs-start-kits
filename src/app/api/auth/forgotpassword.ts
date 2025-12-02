@@ -31,15 +31,19 @@ export async function forgotPassword(state: FormStatePasswordForgot, formData: F
         const token = crypto.randomBytes(32).toString('hex');
         const expires = new Date(Date.now() + 60 * 60 * 1000);
 
+        const resetLink = `${process.env.NEXT_URL}/auth/reset-password?token=${token}&email=${email}`;
+        const response = await sendPasswordResetEmail(email, resetLink);
+
+        if (!response.ok) {
+            console.error("Erro ao enviar e-mail de verificação:", response.error);
+            return { error: 'email-send-error' };
+        }
+
         await prisma.verificationToken.create({
             data: {
                 identifier: email, token, expires
             }
         });
-
-        const resetLink = `${process.env.NEXT_URL}/auth/reset-password?token=${token}&email=${email}`;
-
-        await sendPasswordResetEmail(email, resetLink);
 
         return { message: 'Se seu e-mail estiver registrado, você receberá um link para redefinir sua senha.' };
     }

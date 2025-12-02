@@ -29,6 +29,7 @@ export default function ForgotPassword() {
             description="Digite seu e-mail para receber um link para redefinir sua senha"
         >
             {state?.message && <div className="mb-4 text-center text-sm font-medium text-blue-600">{state.message}</div>}
+            {state?.error && <div className="mb-4 text-center text-sm font-medium text-red-600">{state.error}</div>}
 
             <div className="space-y-6">
                 <form onSubmit={submit}>

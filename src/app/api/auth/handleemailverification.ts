@@ -6,7 +6,7 @@ import crypto from 'crypto';
 
 type FormStateEmailVerification = {
     error?: string;
-    ststus?: string;
+    status?: string;
     success?: string;
 }
 
@@ -40,18 +40,21 @@ export async function handleEmailVerification(state: FormStateEmailVerification 
         });
 
         const token = crypto.randomBytes(32).toString('hex');
-
         const expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+        const verifyLink = `${process.env.NEXT_URL}/auth/verify-email?token=${token}&email=${email}`;
+        const response = await sendEmailVerification(email, verifyLink);
+
+        if (!response.ok) {
+            console.error("Erro ao enviar e-mail de verificação:", response.error);
+            return { error: 'email-send-error' };
+        }
 
         await prisma.verificationToken.create({
             data: {
                 identifier: email, token, expires
             }
         });
-
-        const verifyLink = `${process.env.NEXT_URL}/auth/verify-email?token=${token}&email=${email}`;
-
-        await sendEmailVerification(email, verifyLink);
 
         return { status: 'verification-link-sent' };
     }
@@ -73,5 +76,5 @@ export async function handleEmailVerification(state: FormStateEmailVerification 
         }
     });
 
-    return { success: 'Por favor, verifique seu e-mail.' };
+    return { success: 'Sucesso, e-mail verificado.' };
 }

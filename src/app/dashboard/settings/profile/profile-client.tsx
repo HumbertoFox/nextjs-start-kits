@@ -139,6 +139,11 @@ export default function ProfilePageClient({ name, email, image, mustVerifyEmail 
                                             Um novo link de verificação foi enviado para seu endereço de e-mail.
                                         </div>
                                     )}
+                                    {status === 'email-send-error' && (
+                                        <div className="mt-2 text-sm font-medium text-red-600">
+                                            Ocorreu um erro ao tentar enviar o e-mail de verificação! tente mais tarde.
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </div>
