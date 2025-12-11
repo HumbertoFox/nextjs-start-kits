@@ -31,19 +31,23 @@ export async function createAdmin(state: FormStateCreateAdmin, formData: FormDat
     } = validatedFields.data;
 
     try {
-        const existingUser = await prisma.user.findFirst({
+        const existingUser = await prisma.user.count({
             where: {
                 email
             }
         });
-        if (existingUser) return { warning: 'Dados já Cadastrados' };
+        const hasUser = existingUser > 0;
 
-        const existingUserAdmin = await prisma.user.findFirst({
+        if (hasUser) return { warning: 'Dados já Cadastrados' };
+
+        const existingUserAdmin = await prisma.user.count({
             where: {
                 role: 'ADMIN'
             }
         });
-        const role = existingUserAdmin ? 'USER' : 'ADMIN';
+        const hasAdmin = existingUserAdmin > 0;
+
+        const role = hasAdmin ? 'USER' : 'ADMIN';
 
         const hashedPassword = await bcrypt.hash(password, 12);
 
